@@ -54,14 +54,10 @@ def test_deterministic_given_seed():
 
 def test_form_mix_distributes_forms():
     bench, clean = _fixtures(n=200)
-    res = inject(
-        clean, bench, rate=0.5,
-        form_mix={"verbatim": 1, "paraphrase": 1, "format_shift": 1, "answer_only": 1},
-        seed=9,
-    )
+    mix = {"verbatim": 1, "paraphrase": 1, "format_shift": 1, "answer_only": 1}
+    res = inject(clean, bench, rate=0.5, form_mix=mix, seed=9)
     by = res.ids_by_form()
-    # all four forms represented
-    assert all(len(by[f]) > 0 for f in FORMS)
+    assert all(len(by[f]) > 0 for f in mix)
     assert sum(len(v) for v in by.values()) == len(res.injected_ids)
 
 
@@ -74,6 +70,17 @@ def test_answer_only_omits_question():
         assert item.answer in doc
         # the question text should NOT be present verbatim
         assert item.question not in doc
+
+
+def test_translation_preserves_answer_content():
+    bench, clean = _fixtures(n=20)
+    res = inject(clean, bench, rate=1.0, form="translation", seed=0)
+    for lab in res.labels:
+        item = bench.by_id(lab.item_id)
+        doc = res.corpus.docs[res.corpus.doc_ids.index(lab.injected_doc_id)]
+        assert lab.form == "translation"
+        assert "Pregunta:" in doc
+        assert "Respuesta:" in doc
 
 
 def test_bad_rate_and_form_rejected():

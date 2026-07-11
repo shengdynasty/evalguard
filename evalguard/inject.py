@@ -14,6 +14,7 @@ Supported forms (design section 6):
   paraphrase   - light deterministic reword (synonyms + word-order perturbation)
   format_shift - Q/A reformatted, whitespace / casing changed
   answer_only  - only the answer leaks, not the question
+  translation  - pseudo-translated version (deterministic word-level cipher)
 
 Everything is deterministic given a seed.
 """
@@ -26,7 +27,7 @@ from typing import Dict, List
 from .benchmark import Benchmark, BenchmarkItem
 from .corpus import Corpus
 
-FORMS = ("verbatim", "paraphrase", "format_shift", "answer_only")
+FORMS = ("verbatim", "paraphrase", "format_shift", "answer_only", "translation")
 
 # A tiny deterministic synonym table for the paraphrase transform.
 # SWAP: a real paraphrase attack would use an LLM rephrasing; this rule-based
@@ -125,6 +126,37 @@ def _format_shift(item: BenchmarkItem) -> str:
     )
 
 
+_PSEUDO_TRANSLATE: Dict[str, str] = {
+    "what": "qué", "which": "cuál", "who": "quién", "where": "dónde",
+    "when": "cuándo", "how": "cómo", "is": "es", "are": "son",
+    "the": "el", "a": "un", "an": "un", "of": "de", "in": "en",
+    "to": "a", "and": "y", "or": "o", "not": "no", "for": "para",
+    "with": "con", "from": "desde", "by": "por", "on": "sobre",
+    "this": "esto", "that": "eso", "it": "ello", "they": "ellos",
+    "was": "fue", "were": "fueron", "has": "tiene", "have": "tienen",
+    "can": "puede", "will": "va", "do": "hacer", "does": "hace",
+    "many": "muchos", "much": "mucho", "most": "más", "more": "más",
+    "some": "algunos", "all": "todos", "other": "otro",
+}
+
+
+def _translate(item: BenchmarkItem) -> str:
+    """Pseudo-translation: deterministic word-level substitution simulating
+    cross-lingual contamination where a benchmark item appears in a different
+    language in the corpus."""
+    def _xlate(text: str) -> str:
+        words = text.split()
+        out = []
+        for w in words:
+            stripped = w.strip("?.,!:;").lower()
+            tail = "".join(ch for ch in w if ch in "?.,!:;")
+            repl = _PSEUDO_TRANSLATE.get(stripped)
+            out.append((repl if repl else w) + tail)
+        return " ".join(out)
+
+    return f"Pregunta: {_xlate(item.question)}\nRespuesta: {_xlate(item.answer)}"
+
+
 def inject(
     corpus: Corpus,
     benchmark: Benchmark,
@@ -188,6 +220,8 @@ def inject(
             # Only the answer leaks - the question is NOT present. This is the
             # hardest case: there is no question text in D to retrieve against.
             text = f"Note: the answer is {item.answer}."
+        elif this_form == "translation":
+            text = _translate(item)
         else:  # pragma: no cover - guarded above
             raise ValueError(this_form)
 
