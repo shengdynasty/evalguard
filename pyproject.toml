@@ -34,9 +34,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/evalguard"
-Repository = "https://github.com/your-org/evalguard"
-Changelog = "https://github.com/your-org/evalguard/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/shengdynasty/evalguard"
+Repository = "https://github.com/shengdynasty/evalguard"
+Changelog = "https://github.com/shengdynasty/evalguard/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 test = ["pytest>=7.0"]
