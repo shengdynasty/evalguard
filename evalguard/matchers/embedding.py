@@ -100,7 +100,7 @@ def try_sentence_transformer(model_name: str = "all-MiniLM-L6-v2"):
 class EmbeddingMatcher:
     name = "embedding"
 
-    def __init__(self, sim_floor: float | None = None, embedder=None, use_real: bool = False):
+    def __init__(self, sim_floor: float | None = None, embedder=None, use_real: bool = True):
         # sim_floor scales raw cosine to a [0,1] evidence score: cosine at or
         # below sim_floor -> ~0 evidence; cosine of 1.0 -> 1.0 evidence.
         # Default comes from the calibrated shaping constants (evalguard.config),
@@ -109,8 +109,8 @@ class EmbeddingMatcher:
             from ..config import load_shaping
             sim_floor = load_shaping()["embedding_sim_floor"]
         self.sim_floor = sim_floor
-        # Encoder selection: an explicit embedder wins; else optionally try real
-        # sentence-transformers; else the TF-IDF stand-in.
+        # Encoder selection: an explicit embedder wins; else try real
+        # sentence-transformers (default); else the TF-IDF stand-in.
         if embedder is not None:
             self._embedder = embedder
         elif use_real:
